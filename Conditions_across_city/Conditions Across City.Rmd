@@ -64,6 +64,7 @@ ggplotly(report0408_plot)
 ```
 We can estimate that the earthquake occurred around Apr 8th 8:35AM (use 8:30 since easier to handle), since the frequency of reports vastly increase from 7 reports at 8:30AM to 702 reports at 8:35AM.
 
+## In 5hrs
 ```{r}
 #see reports from 8:30AM in 5hrs (na.rm = TRUE)
 #Apr 8th 8:30~13:30
@@ -107,7 +108,7 @@ report5hrs_plot2 <- ggplot(report5hrs_sum, mapping = aes(x = reorder(name,-damag
 ggplotly(report5hrs_plot2)
 ```
 
-
+## In 30hrs
 ```{r}
 #see reports from 8:30AM in 30hrs (na.rm = TRUE)
 #Apr 8th 8:30~ Apr 9th 14:30
