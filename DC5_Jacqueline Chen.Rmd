@@ -1,0 +1,44 @@
+---
+title: "DC5"
+author: "Jacqueline Chen"
+date: "2021/4/20"
+output: openintro::lab_report
+---
+
+```{r load-packages, message=FALSE}
+library(tidyverse)
+library(openintro)
+library(plotly)
+library(ggplot2)
+df <- read.csv("mc1-reports-data.csv")
+```
+
+### Earthquake happened on April 8th 
+```{r}
+df$Time <- format(as.POSIXct(df$time,format="%Y-%m-%d %H:%M:%S"),"%H:%M:%S")
+df$Date <- format(as.POSIXct(df$time,format="%Y-%m-%d %H:%M:%S"),"%Y-%m-%d")
+df_earthquake <- subset(df, Date != "2020-04-07")
+```
+
+### Shake_insentity distribution among neighborhoods
+```{r code-chunk-label}
+df_earthquake <- subset(df, Date != "2020-04-07")
+ggplot(df, aes(x=location, y=shake_intensity)) + geom_point() + labs(y = "shake intensity reported", x = "neighborhoods")
+```
+
+### Medical emergency
+```{r}
+df_earthquake$neighborhood <- df_earthquake$location
+p <-
+  df_earthquake %>%
+  group_by(location) %>%
+  ggplot(aes( x = medical)) + geom_bar(aes(group = neighborhood, col = neighborhood)) + labs(x = "medical damage level")
+p
+ggplotly(p) 
+```
+
+
+
+
+...
+
