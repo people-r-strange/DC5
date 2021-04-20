@@ -1,0 +1,306 @@
+---
+title: "Data Challenge 5"
+author: "Yuri Tamura"
+output:
+  html_document:
+    code_folding: hide
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+```
+
+```{r}
+library(readr)
+library(tidyverse)
+library(plotly)
+library(tidytext)
+library(RColorBrewer)
+library(wordcloud)
+```
+
+```{r}
+#importing data
+report_data <- read_csv("mc1-reports-data.csv")
+social_media <- read_csv("YInt.csv")
+```
+
+# Damage Reports
+```{r}
+#arrange entries in order of time
+report_data <- report_data %>%
+  arrange(time)
+```
+```{r results='hide'}
+#working with timestamp
+report_data$time %>% head()
+report_data <- report_data %>% 
+  mutate(Date= as.Date(time)) %>%
+  mutate(Time= format(time, format = "%H:%M:%S")) %>%
+  mutate(Hours= format(time, format = "%H")) %>%
+  mutate(Min= format(time, format = "%M")) 
+```
+
+## Finding when initial earthquake occured
+```{r}
+#Find when the initial earthquake occured using frequency of report
+freq_report <- report_data %>%
+  group_by(time) %>%
+  summarize(
+    freq = n()
+  )
+
+#plot frequency in general - there's a significant increase on April 8
+ggplot(freq_report, mapping = aes(x = time, y = freq)) +
+  geom_point() + 
+  labs(title = "Frequency of Reports from April 6th to 11th", x = "Time", y = "Number of Reports")
+```
+
+```{r}
+#plot for April 8th specifically, to see around what time the earthquake might have occured
+freq_report0408 <- report_data %>%
+  filter(Date == "2020-04-08") %>%
+  group_by(time) %>%
+  summarize(
+    freq = n()
+  )
+
+report0408_plot<- ggplot(freq_report0408, mapping = aes(x = time, y = freq)) +
+  geom_point() + 
+  labs(title = "Frequency of Reports on April 8th", x = "Time", y = "Number of Reports")
+ggplotly(report0408_plot)
+```
+We can estimate that the earthquake occurred around Apr 8th 8:35AM (use 8:30 since easier to handle), since the frequency of reports vastly increase from 7 reports at 8:30AM to 702 reports at 8:35AM.
+
+## Use damage report to look at damage 5hrs and 30hrs after initial earthquake
+### In 5hrs
+```{r}
+#see reports from 8:30AM in 5hrs (na.rm = TRUE)
+#Apr 8th 8:30~13:30
+report5hrs <- report_data %>%
+  filter(Date == "2020-04-08") %>%
+  filter(Time >= "08:30:00") %>%
+  filter(Time <= "13:30:00")
+
+report5hrs_sum <- report5hrs %>%
+  group_by(location) %>%
+  summarize(
+    sewer_and_water = round(mean(sewer_and_water, na.rm = TRUE), 2),
+    power = round(mean(power, na.rm = TRUE), 2),
+    roads_and_bridges = round(mean(roads_and_bridges, na.rm = TRUE), 2),
+    medical = round(mean(medical, na.rm = TRUE), 2), #medical for location 10 shows as NaN since all are NA
+    buildings = round(mean(buildings, na.rm = TRUE), 2)
+  ) %>%
+  pivot_longer(-location, names_to = "resource", values_to = "damage") #pivot so easy to plot categorical value
+```
+```{r}
+#create df with location names and join them so easy to understand
+location <- c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19)
+name <- c("Palace Hills", "Northwest", "Old Town", "Safe Town", "Southwest", "Downtown", "Wilson Forest", "Scenic Vista", "Broadview", "Chapparal", "Terrapin Springs", "Pepper Mill", "Cheddarford", "Easton", "Weston", "Southton", "Oak Willow", "East Parton", "West Parton")
+location_name <- data.frame(location, name)
+report5hrs_sum <- report5hrs_sum %>%
+  left_join(location_name, by = "location")
+```
+```{r}
+#plot bar graph
+report5hrs_plot <- ggplot(report5hrs_sum, mapping = aes(x = reorder(name,-damage), y = damage, fill = resource)) +
+  geom_bar(stat = 'identity') +
+  coord_flip()
+ggplotly(report5hrs_plot)
+```
+```{r}
+#alternative bar graph with facet wrap
+report5hrs_plot2 <- ggplot(report5hrs_sum, mapping = aes(x = reorder(name,-damage), y = damage)) +
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  facet_wrap(~resource) +
+  labs(title = "Average Damage Rating 5hrs after Earthquake", y = "Damage Rating", x = "Location")
+ggplotly(report5hrs_plot2)
+```
+
+### In 30hrs
+```{r}
+#see reports from 8:30AM in 30hrs (na.rm = TRUE)
+#Apr 8th 8:30~ Apr 9th 14:30
+filter1 <- report_data %>%
+  filter(Date == "2020-04-08") %>%
+  filter(Time >= "08:30:00")
+filter2 <- report_data %>%  
+  filter(Date == "2020-04-09") %>%
+  filter(Time <= "14:30:00")
+report30hrs <- rbind(filter1, filter2)
+
+report30hrs_sum <- report30hrs %>%
+  group_by(location) %>%
+  summarize(
+    sewer_and_water = round(mean(sewer_and_water, na.rm = TRUE), 2),
+    power = round(mean(power, na.rm = TRUE), 2),
+    roads_and_bridges = round(mean(roads_and_bridges, na.rm = TRUE), 2),
+    medical = round(mean(medical, na.rm = TRUE), 2), #medical for location 10 shows as NaN since all are NA
+    buildings = round(mean(buildings, na.rm = TRUE), 2)
+  ) %>%
+  pivot_longer(-location, names_to = "resource", values_to = "damage") #pivot so easy to plot categorical value
+```
+```{r}
+report30hrs_sum <- report30hrs_sum %>%
+  left_join(location_name, by = "location")
+```
+```{r}
+#plot bar graph
+report30hrs_plot <- ggplot(report30hrs_sum, mapping = aes(x = reorder(name,-damage), y = damage, fill = resource)) +
+  geom_bar(stat = 'identity') +
+  coord_flip()
+ggplotly(report30hrs_plot)
+```
+```{r}
+#alternative bar graph with facet wrap
+report30hrs_plot2 <- ggplot(report30hrs_sum, mapping = aes(x = reorder(name,-damage), y = damage)) + #reorder(name, -location) to order by location
+  geom_bar(stat = 'identity') +
+  coord_flip() +
+  facet_wrap(~resource) +
+  labs(title = "Average Damage Rating 30hrs after Earthquake", y = "Damage Rating", x = "Location") 
+ggplotly(report30hrs_plot2)
+```
+
+
+# Social Media Posts
+```{r results='hide'}
+#working with timestamp
+social_media$time %>% head()
+social_media <- social_media %>% 
+  mutate(Date= as.Date(time)) %>%
+  mutate(Time= format(time, format = "%H:%M:%S")) %>%
+  mutate(Hours= format(time, format = "%H")) %>%
+  mutate(Min= format(time, format = "%M")) 
+```
+
+```{r}
+#Trying to see if speculated time of initial earthquake was accurate
+#Look at frequency of social media posts by date - drastic increase at Apr 8th
+social_media_sum <- social_media %>%
+  group_by(Date) %>%
+  summarize(
+    freq = n()
+  )
+```
+
+```{r}
+#Specifically, look at frequency of posts on Apr 8th - increase during 7AM~8AM
+social_media0408 <- social_media %>%
+  group_by(Hours) %>%
+  summarize(
+    freq = n()
+    )
+social_media0408_plot <- ggplot(data = social_media0408, mapping = aes(x = Hours, y = freq)) +
+  geom_point() +
+  labs(title = "Frequency of Social Media Posts on April 8th", x = "Time", y = "Number of Posts")
+ggplotly(social_media0408_plot)
+```
+
+
+```{r warning = FALSE, fig.show = "hold", out.width="50%"}
+#compare frequency of words during 7AM(~8AM) and 8AM(~9AM)
+data("stop_words")
+#7AM
+social_text7AM <- social_media %>%
+  filter(Date == "2020-04-08") %>%
+  filter(Hours == "07") %>%
+  select(message) %>%
+  unnest_tokens(word, message) %>%
+  anti_join(stop_words) %>%
+  group_by(word) %>%
+  summarise(
+    freq = n()
+  ) %>%
+  arrange(desc(freq))
+
+#8AM
+social_text8AM <- social_media %>%
+  filter(Date == "2020-04-08") %>%
+  filter(Hours == "08") %>%
+  select(message) %>%
+  unnest_tokens(word, message) %>%
+  anti_join(stop_words) %>%
+  group_by(word) %>%
+  summarise(
+    freq = n()
+  ) %>%
+  arrange(desc(freq))
+
+#create cloud word for April 8th 7AM and 8AM
+pal <- brewer.pal(8,"Set1")
+
+wordcloud(words = social_text7AM$word, social_text8AM$freq, random.order = FALSE, max.words = 50, colors = pal, scale = c(3.0, 0.25))
+
+wordcloud(words = social_text8AM$word, social_text8AM$freq, random.order = FALSE, max.words = 50, colors = pal, scale = c(3.0, 0.25))
+```
+Frequent words during 7AM on left, and frequent words during 8AM on right
+
+
+## Use social media post to look at damage 5hrs and 30hrs after initial earthquake
+### 5hrs
+```{r results = 'hide', fig.show = "hold", out.width="33%"}
+#Social media analysis function by location after 5hrs
+#creating function
+social5hrs_function <- function(name) {
+  social_media %>%
+  filter(Date == "2020-04-08") %>%
+  filter(Time >= "08:30:00") %>%
+  filter(Time <= "13:30:00") %>%
+  filter(location == name)%>%
+  select(message) %>%
+  unnest_tokens(word, message) %>%
+  anti_join(stop_words) %>%
+  group_by(word) %>%
+  summarise(
+    freq = n()
+  ) %>%
+  filter(word != "verypopularsingerlalisamanoban") %>% #filter this since irrelevant
+  arrange(desc(freq)) %>%
+  head(10) %>%
+  ggplot(mapping = aes(x = word, y = freq)) + 
+    geom_bar(stat = 'identity') +
+    coord_flip() +
+    labs(title = name, x = "Words", y = "Frequency")
+  
+}
+name_list <- location_name %>%
+  as.vector()
+results <- map(name_list$name, social5hrs_function)
+results
+```
+
+
+### 30hrs
+```{r results = 'hide', fig.show = "hold", out.width="33%"}
+#Social media analysis function by location after 5hrs
+#creating function
+social5hrs_function <- function(name) {
+  social_media %>%
+  filter(Date == "2020-04-08") %>%
+  filter(Time >= "08:30:00") %>%
+  filter(Time <= "13:30:00") %>%
+  filter(location == name)%>%
+  select(message) %>%
+  unnest_tokens(word, message) %>%
+  anti_join(stop_words) %>%
+  group_by(word) %>%
+  summarise(
+    freq = n()
+  ) %>%
+  filter(word != "verypopularsingerlalisamanoban") %>% #filter this since irrelevant
+  arrange(desc(freq)) %>%
+  head(10) %>%
+  ggplot(mapping = aes(x = word, y = freq)) + 
+    geom_bar(stat = 'identity') +
+    coord_flip() +
+    labs(title = name, x = "Words", y = "Frequency")
+  
+}
+name_list <- location_name %>%
+  as.vector()
+results <- map(name_list$name, social5hrs_function)
+results
+```
+
