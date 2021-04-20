@@ -59,7 +59,8 @@ freq_report0408 <- report_data %>%
   )
 
 report0408_plot<- ggplot(freq_report0408, mapping = aes(x = time, y = freq)) +
-  geom_point()  
+  geom_point() + 
+  labs(title = "Frequency of Reports on April 8th", x = "Time", y = "Number of Reports")
 ggplotly(report0408_plot)
 ```
 We can estimate that the earthquake occurred around Apr 8th 8:35AM (use 8:30 since easier to handle), since the frequency of reports vastly increase from 7 reports at 8:30AM to 702 reports at 8:35AM.
@@ -104,7 +105,8 @@ ggplotly(report5hrs_plot)
 report5hrs_plot2 <- ggplot(report5hrs_sum, mapping = aes(x = reorder(name,-damage), y = damage)) +
   geom_bar(stat = 'identity') +
   coord_flip() +
-  facet_wrap(~resource)
+  facet_wrap(~resource) +
+  labs(title = "Average Damage Rating per Resource Categories in 5hrs after Earthquake", y = "Damage Rating", x = "Location")
 ggplotly(report5hrs_plot2)
 ```
 
@@ -147,7 +149,8 @@ ggplotly(report30hrs_plot)
 report30hrs_plot2 <- ggplot(report30hrs_sum, mapping = aes(x = reorder(name,-damage), y = damage)) + #reorder(name, -location) to order by location
   geom_bar(stat = 'identity') +
   coord_flip() +
-  facet_wrap(~resource)
+  facet_wrap(~resource) +
+  labs(title = "Average Damage Rating per Resource Categories in 30hrs after Earthquake", y = "Damage Rating", x = "Location") 
 ggplotly(report30hrs_plot2)
 ```
 
